@@ -53,25 +53,25 @@ class UserController {
         const schema = Yup.object().shape({
             name: Yup.string().required().min(6),
             login: Yup.string().required().min(6),
-            email: Yup.string().required().email(),
+            email: Yup.string().required().email(), 
             oldPassword: Yup.string().min(6),
             password: Yup.string().min(6)
                 .when('oldPassword', (oldPassword, field) =>
                     oldPassword ? field.required() : field
                 ),
             confirmPassword: Yup.string().when('password', (password, field) =>
-                password ? field.required().oneOf([Yup.ref('passoword')]) : field
+                password ? field.required().oneOf([Yup.ref('password')]) : field
             )
         })
 
-        if (!(schema.isValid(req.body))) {
+        if (!(await schema.isValid(req.body))) {
             return res.status(400).json({ error: 'Validation fails' })
         }
 
         //get the logged user
         const user = await User.findByPk(req.userId)
         
-        const { email, login, password } = req.body
+        const { email, login, oldPassword } = req.body
 
         //verify if new login is already being used
         if(user.login !== login){
@@ -90,7 +90,7 @@ class UserController {
         }    
 
         //in case of password change, verify if oldPassword matches
-        if(oldPassword && !(await user.passwordValid(password))){
+        if(oldPassword && !(await user.passwordValid(oldPassword))){
             return res.status(400).json({ error: 'OldPassword does not match' })
         }
 
@@ -112,7 +112,7 @@ class UserController {
         
         //only admin users may remove users
         if (!userLogged.admin){
-            return res.status(401).json({ error: 'You does not have permission to remove users' })
+            return res.status(401).json({ error: 'Only administradors may remove users' })
         }
         
         const user = await User.findByPk(req.params.id)
