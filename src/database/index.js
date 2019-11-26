@@ -3,7 +3,7 @@ import databaseConfig from './../config/database'
 import User from './../app/models/User'
 import Task from './../app/models/Task'
 
-const models = [User]
+const models = [User, Task]
 
 class Database {
     constructor() {
