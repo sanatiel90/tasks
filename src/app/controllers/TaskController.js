@@ -2,8 +2,33 @@ import * as Yup from 'yup'
 import { parseISO, startOfHour, isBefore } from 'date-fns'
 import { zonedTimeToUtc } from "date-fns-tz";
 import Task from './../models/Task'
+import User from './../models/User'
 
 class TaskController {
+
+    async index(req, res) {
+
+        const { page = 1 } = req.query
+
+        const tasks = await Task.findAll({
+            where: {
+                user_id: req.userId
+            },
+            order: ['date_start'],
+            attributes: ['id', 'title', 'desc', 'date_start', 'date_expected', 'date_finish'],
+            limit: 5,
+            offset: (page - 1) * 5,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['name', 'email']
+                }
+            ]
+        })
+
+        return res.json(tasks)
+    }
 
     async store(req, res) {
         const schema = Yup.object().shape({
