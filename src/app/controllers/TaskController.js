@@ -16,7 +16,7 @@ class TaskController {
             },
             order: ['date_start'],
             attributes: ['id', 'title', 'desc', 'date_start', 'date_expected', 'date_finish'],
-            limit: 5,
+            limit: 20,
             offset: (page - 1) * 5,
             include: [
                 {
@@ -96,6 +96,92 @@ class TaskController {
         })
 
         return res.json(task)
+
+    }
+
+
+    async update(req, res){
+        const schema = Yup.object().shape({
+            title: Yup.string(),
+            desc: Yup.string(),
+            date_expected: Yup.date(),
+            date_finish: Yup.date()
+        })
+
+        if(!(await schema.isValid(req.body))){
+            return res.status(400).json({ error: 'Validation fails' })
+        }
+
+        const task = await Task.findByPk(req.params.id)
+
+        //se task existe
+        if(!task){
+            return res.status(400).json({ error: 'Task not found' })
+        }
+
+        //se task pertence ao usuario logado
+        if(task.user_id !== req.userId){
+            return res.status(401).json({ error: 'You cannot update tasks from other users' })
+        }
+ 
+        //data atual
+        const currentDate = zonedTimeToUtc(new Date(), 'America/Sao_Paulo')
+        //pega data de inicio da task
+        const znDateStart = zonedTimeToUtc(task.date_start, 'America/Sao_Paulo')
+ 
+        const dateStartHourStart = startOfHour(znDateStart)
+               
+        const { date_expected, date_finish } = req.body
+
+        //verifica data prevista, caso exista
+        if (date_expected) {
+            const dateExpHourStart = startOfHour(parseISO(date_expected))
+            if (isBefore(dateExpHourStart, currentDate)) {
+                return res.status(400).json({ error: 'Date expected cannot be a past date' })
+            }
+            if (isBefore(dateExpHourStart, dateStartHourStart)) {
+                return res.status(400).json({ error: 'Date expected cannot be before the date start' })
+            }
+        }
+
+        //verifica data finalizada, caso exista
+        if (date_finish) {
+            const dateFinHourStart = startOfHour(parseISO(date_finish))
+            if (isBefore(dateFinHourStart, currentDate)) {
+                return res.status(400).json({ error: 'Date finish cannot be a past date' })
+            }
+
+            if (isBefore(dateFinHourStart, dateStartHourStart)) {
+                return res.status(400).json({ error: 'Date finish cannot be before the date start' })
+            }
+         
+        }
+
+        await task.update(req.body)
+
+        return res.json(task)
+
+    }
+
+    async delete(req, res){
+        const task = await Task.findByPk(req.params.id)
+
+        if(!task){
+            return res.status(400).json({ error: 'Task not found' })
+        }
+
+        //se task pertence ao usuario logado
+        console.log('task id'+ task.user_id)
+        console.log('user id'+ req.userId)
+        if(task.user_id !== req.userId){
+            return res.status(401).json({ error: 'You cannot delete tasks from other users' })
+        }
+
+        await task.destroy()
+
+        return res.status(200).json({ msg:'ok' })
+
+
 
     }
 

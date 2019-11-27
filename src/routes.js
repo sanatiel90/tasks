@@ -17,5 +17,7 @@ routes.delete('/users/:id', UserController.delete)
 
 routes.get('/tasks', TaskController.index)
 routes.post('/tasks', TaskController.store)
+routes.put('/tasks/:id', TaskController.update)
+routes.delete('/tasks/:id', TaskController.delete)
 
 export default routes
